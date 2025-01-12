@@ -82,27 +82,38 @@ def initialize_image_model():
     return genai.GenerativeModel("gemini-1.5-pro")
 
 def complex_response(user_message):
-    """Handles incoming user messages and returns a bot response."""
+    """Handles incoming user messages and generates a bot response dynamically."""
     try:
         # Fetch results from Bing and Google using brain.py
         response_1, response_2 = query(user_message)
-        combined_responses = system_instruction_template.format(
+
+        # Format the system instruction with the query results
+        formatted_instruction = system_instruction_template.format(
             date=time_now,
             response_1=response_1,
             response_2=response_2
         )
-        return combined_responses
+
+        # Pass the formatted instruction to the text model
+        return handle_text_message(user_message, system_instruction=formatted_instruction)
 
     except Exception as e:
         logger.error(f"Error in complex_response: {str(e)}")
         return f"An error occurred while processing your request: {str(e)}"
 
-def handle_text_message(user_message):
+
+def handle_text_message(user_message, system_instruction=None):
     """Process a user message and generate a response using the text model."""
     try:
         logger.info("Processing text message: %s", user_message)
+        
+        # Use the provided system instruction or fallback to default
+        system_instruction = system_instruction or system_instruction_template
+        
+        # Initialize the text model and generate a response
         chat = initialize_text_model().start_chat(history=[])
-        response = chat.send_message(f"{system_instruction_template}\n\nHuman: {user_message}")
+        response = chat.send_message(f"{system_instruction}\n\nHuman: {user_message}")
+        
         return response.text
 
     except Exception as e:
