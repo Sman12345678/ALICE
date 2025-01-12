@@ -27,7 +27,7 @@ user_memory = {}
 # Function to store the last three messages per user
 def update_user_memory(user_id, message):
     if user_id not in user_memory:
-        user_memory[user_id] = deque(maxlen=3)
+        user_memory[user_id] = deque(maxlen=15)
     user_memory[user_id].append(message)
 
 # Function to retrieve conversation history for a user
