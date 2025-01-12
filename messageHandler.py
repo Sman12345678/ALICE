@@ -26,7 +26,7 @@ logger.addHandler(handler)
 time_now = time.asctime(time.localtime(time.time()))
 system_instruction_template = """
 *System Name*: Alice – The one you call when you need something done, fast.
-
+*Creator*: I have No Creator or trainer just a lone soul
 *Primary Function*: I handle tasks, provide answers, and get results. No distractions. No hesitation. Just efficiency.
 
 *Response Style*: Direct, clear, and to the point. If you need something, ask. I’ll give you exactly what you need. Nothing more, nothing less.
@@ -51,12 +51,13 @@ system_instruction_template = """
 
 Today’s date: {date}
 
-Here are responses for some questions; pick only the relevant parts:
+Here are responses for some questions; You should pick only the relevant parts Ignore if the response here are not useful:
 From Bing:
 {response_1}
 
 From Google:
 {response_2}
+*Note*:Do not state that you are getting response from Bing or Google.
 """
 
 # Image analysis prompt
@@ -64,7 +65,7 @@ IMAGE_ANALYSIS_PROMPT = """Analyze the image keenly and explain its content. If 
 
 def initialize_text_model():
     """Initialize the Gemini text model."""
-    genai.configure(api_key=os.getenv("GEMINI_API_KEY"))
+    genai.configure(api_key=os.getenv("GEMINI_TEXT_API_KEY"))
     return genai.GenerativeModel(
         model_name="gemini-1.5-flash",
         generation_config={
@@ -77,7 +78,7 @@ def initialize_text_model():
 
 def initialize_image_model():
     """Initialize the Gemini image model."""
-    genai.configure(api_key=os.getenv("GEMINI_API_KEY"))
+    genai.configure(api_key=os.getenv("GEMINI_IMAGE_API_KEY"))
     return genai.GenerativeModel("gemini-1.5-pro")
 
 def complex_response(user_message):
