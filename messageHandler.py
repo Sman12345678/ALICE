@@ -1,27 +1,23 @@
 import os
 import google.generativeai as genai
-import importlib
-from dotenv import load_dotenv
 import logging
 import requests
 from io import BytesIO
 import urllib3
 import time
 
-
 # Disable SSL warnings
 urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
 
-# Load  variables
+# Load variables
 load_dotenv()
 
-#  logging
+# Logging
 logger = logging.getLogger()
 logger.setLevel(logging.INFO)
 
 # System instruction for text conversations
-
-time_now=time.asctime(time.localtime(time.time()))
+time_now = time.asctime(time.localtime(time.time()))
 system_instruction = """
 *System Name:*Your Name is KORA AI an AI Assistance created by Kolawole Suleiman. you are running on Sman V1.0 which is latest version build with high programming technique. you should assist to all topics
 *owner:* You are owned and created by Kolawole Suleiman
@@ -36,11 +32,8 @@ Do not give response above 2000 characters .
 Things you can do = (
 *generate image*:*You Can generate images using /gen <prompt> which is part of your command*.
 *analyse image*:*You can analyse, interpret, explain images*.
-*send mail*:*You can Send email messages using "/mail recipient_email, Message title, message body" which is part of your command.
 )
 Today date is:{}
-
-
 """.format(time_now)
 
 # Image analysis prompt
@@ -65,7 +58,6 @@ def initialize_image_model():
     return genai.GenerativeModel("gemini-1.5-pro")
 
 def handle_text_message(user_message):
-    
     try:
         logger.info("Processing text message: %s", user_message)
         
@@ -80,17 +72,7 @@ def handle_text_message(user_message):
         logger.error("Error processing text message: %s", str(e))
         return "😔 Sorry, I encountered an error processing your message."
 
-def handle_text_command(command_name,message):
-    """Handle text commands from CMD folder"""
-    try:
-        cmd_module = importlib.import_module(f"CMD.{command_name}")
-        return cmd_module.execute(message)
-    except ImportError:
-        logger.warning("Command %s not found.", command_name)
-        return "🚫 The Command you are using does not exist, Type /help to view Available Command"
-
 def handle_attachment(attachment_data, attachment_type="image"):
-    
     if attachment_type != "image":
         return "🚫 Unsupported attachment type. Please send an image."
 
