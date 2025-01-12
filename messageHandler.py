@@ -5,6 +5,36 @@ import requests
 from io import BytesIO
 import urllib3
 import time
+from brain import query  # Import the query function from brain.py
+
+def complex_response(user_message):
+    """Handles incoming user messages and returns a bot response."""
+    try:
+        # Fetch results from Bing and Google using brain.py
+        response_1, response_2 = query(user_message)
+
+        # Format the combined response
+        combined_responses = (
+            "Here's what I found:\n\n"
+            "From Bing:\n"
+            f"{response_1}\n\n"
+            "From Google:\n"
+            f"{response_2}"
+        )
+
+        # Return the combined response as the bot's reply
+        return combined_responses
+
+    except Exception as e:
+        # Handle errors and return a fallback message
+        return f"An error occurred while processing your request: {str(e)}"
+
+# Example usage
+if __name__ == "__main__":
+    user_message = "Tell me about Python programming."
+    bot_response = handle_text(user_message)
+    print(bot_response)
+        
 
 # Disable SSL warnings
 urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
@@ -45,7 +75,8 @@ system_instruction = """
 - Whatever you need, I’ve got it covered. No hesitation, no delay
 
 Today date is:{}
-""".format(time_now)
+Here are Response for some questions pick only relevant part:\n{response_1},{response_2}
+""".format(time_now, response_1=response_1, response_2=response_2)
 
 # Image analysis prompt
 IMAGE_ANALYSIS_PROMPT = """Analyize the image keenly and explain it's content,if it's a text translate it and say the language used"""
