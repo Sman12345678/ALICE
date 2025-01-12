@@ -1,55 +1,30 @@
 import os
-import google.generativeai as genai
 import logging
 import requests
 from io import BytesIO
-import urllib3
 import time
+import google.generativeai as genai
+from dotenv import load_dotenv
+import urllib3
 from brain import query  # Import the query function from brain.py
-
-def complex_response(user_message):
-    """Handles incoming user messages and returns a bot response."""
-    try:
-        # Fetch results from Bing and Google using brain.py
-        response_1, response_2 = query(user_message)
-
-        # Format the combined response
-        combined_responses = (
-            "Here's what I found:\n\n"
-            "From Bing:\n"
-            f"{response_1}\n\n"
-            "From Google:\n"
-            f"{response_2}"
-        )
-
-        # Return the combined response as the bot's reply
-        return combined_responses
-
-    except Exception as e:
-        # Handle errors and return a fallback message
-        return f"An error occurred while processing your request: {str(e)}"
-
-# Example usage
-if __name__ == "__main__":
-    user_message = "Tell me about Python programming."
-    bot_response = handle_text(user_message)
-    print(bot_response)
-        
 
 # Disable SSL warnings
 urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
 
-# Load variables
+# Load environment variables
 load_dotenv()
 
-# Logging
-logger = logging.getLogger()
+# Logging setup
+logger = logging.getLogger(__name__)
 logger.setLevel(logging.INFO)
+handler = logging.StreamHandler()
+formatter = logging.Formatter('%(asctime)s - %(levelname)s - %(message)s')
+handler.setFormatter(formatter)
+logger.addHandler(handler)
 
-# System instruction for text conversations
+# System instruction template
 time_now = time.asctime(time.localtime(time.time()))
-system_instruction = """
-
+system_instruction_template = """
 *System Name*: Alice – The one you call when you need something done, fast.
 
 *Primary Function*: I handle tasks, provide answers, and get results. No distractions. No hesitation. Just efficiency.
@@ -72,17 +47,23 @@ system_instruction = """
 *Usage*:
 - Need something done? Tell me what it is. I’ll take care of it.
 - Send files, and I’ll process them. Request tasks, and I’ll handle them.
-- Whatever you need, I’ve got it covered. No hesitation, no delay
+- Whatever you need, I’ve got it covered. No hesitation, no delay.
 
-Today date is:{}
-Here are Response for some questions pick only relevant part:\n{response_1},{response_2}
-""".format(time_now, response_1=response_1, response_2=response_2)
+Today’s date: {date}
+
+Here are responses for some questions; pick only the relevant parts:
+From Bing:
+{response_1}
+
+From Google:
+{response_2}
+"""
 
 # Image analysis prompt
-IMAGE_ANALYSIS_PROMPT = """Analyize the image keenly and explain it's content,if it's a text translate it and say the language used"""
+IMAGE_ANALYSIS_PROMPT = """Analyze the image keenly and explain its content. If it's text, translate it and identify the language."""
 
 def initialize_text_model():
-    """Initialize Gemini model for text processing"""
+    """Initialize the Gemini text model."""
     genai.configure(api_key=os.getenv("GEMINI_TEXT_API_KEY"))
     return genai.GenerativeModel(
         model_name="gemini-1.5-flash",
@@ -95,57 +76,67 @@ def initialize_text_model():
     )
 
 def initialize_image_model():
-    """Initialize Gemini model for image processing"""
+    """Initialize the Gemini image model."""
     genai.configure(api_key=os.getenv("GEMINI_IMAGE_API_KEY"))
     return genai.GenerativeModel("gemini-1.5-pro")
 
+def complex_response(user_message):
+    """Handles incoming user messages and returns a bot response."""
+    try:
+        # Fetch results from Bing and Google using brain.py
+        response_1, response_2 = query(user_message)
+        combined_responses = system_instruction_template.format(
+            date=time_now,
+            response_1=response_1,
+            response_2=response_2
+        )
+        return combined_responses
+
+    except Exception as e:
+        logger.error(f"Error in complex_response: {str(e)}")
+        return f"An error occurred while processing your request: {str(e)}"
+
 def handle_text_message(user_message):
+    """Process a user message and generate a response using the text model."""
     try:
         logger.info("Processing text message: %s", user_message)
-        
-        # Initialize text model and start chat
         chat = initialize_text_model().start_chat(history=[])
-        
-        # Generate response
-        response = chat.send_message(f"{system_instruction}\n\nHuman: {user_message}")
+        response = chat.send_message(f"{system_instruction_template}\n\nHuman: {user_message}")
         return response.text
 
     except Exception as e:
-        logger.error("Error processing text message: %s", str(e))
+        logger.error(f"Error processing text message: {str(e)}")
         return "😔 Sorry, I encountered an error processing your message."
 
-def handle_attachment(attachment_data, attachment_type="image"):
+def handle_attachment(attachment_data: bytes, attachment_type: str = "image") -> str:
+    """Handle image attachment and analyze its content."""
     if attachment_type != "image":
         return "🚫 Unsupported attachment type. Please send an image."
 
     logger.info("Processing image attachment")
-    
     try:
-        # Upload to im.ge
+        # Upload image to im.ge
         upload_url = "https://im.ge/api/1/upload"
-        api_key = os.getenv('IMGE_API_KEY')
-
+        api_key = os.getenv("IMGE_API_KEY")
         files = {"source": ("attachment.jpg", attachment_data, "image/jpeg")}
         headers = {"X-API-Key": api_key}
-
-        # Upload image
         upload_response = requests.post(upload_url, files=files, headers=headers, verify=False)
         upload_response.raise_for_status()
-
-        # Get image URL
-        image_url = upload_response.json()['image']['url']
+        
+        # Get uploaded image URL
+        image_url = upload_response.json()["image"]["url"]
         logger.info(f"Image uploaded successfully: {image_url}")
-
-        # Download image for Gemini processing
+        
+        # Download image for analysis
         image_response = requests.get(image_url, verify=False)
         image_response.raise_for_status()
         image_data = BytesIO(image_response.content).getvalue()
 
-        # Initialize image & analyze
+        # Analyze image with Gemini
         model = initialize_image_model()
         response = model.generate_content([
             IMAGE_ANALYSIS_PROMPT,
-            {'mime_type': 'image/jpeg', 'data': image_data}
+            {"mime_type": "image/jpeg", "data": image_data}
         ])
 
         return f"""🖼️ Image Analysis:
@@ -159,3 +150,5 @@ def handle_attachment(attachment_data, attachment_type="image"):
     except Exception as e:
         logger.error(f"Image analysis error: {str(e)}")
         return "🚨 Error analyzing the image. Please try again later."
+
+
