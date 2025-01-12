@@ -2,7 +2,7 @@ import requests
 from bs4 import BeautifulSoup
 import os
 import googleapiclient.discovery
-from messageHandler import handle_text_message  # Import from your main code
+
 
 def scrape_bing(user_message):
     """Scrapes Bing search results using the specified <div> class."""
