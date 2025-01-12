@@ -6,7 +6,7 @@ from flask_cors import CORS
 import requests
 import messageHandler  # Import the message handler module
 import time
-from io import BytesIO
+from collections import deque
 
 # Load environment variables
 load_dotenv()
@@ -20,8 +20,19 @@ logger = logging.getLogger()
 
 VERIFY_TOKEN = os.getenv("VERIFY_TOKEN")
 PAGE_ACCESS_TOKEN = os.getenv("PAGE_ACCESS_TOKEN")
-PREFIX = os.getenv("PREFIX", "/")
 
+# Store user message history
+user_memory = {}
+
+# Function to store the last three messages per user
+def update_user_memory(user_id, message):
+    if user_id not in user_memory:
+        user_memory[user_id] = deque(maxlen=3)
+    user_memory[user_id].append(message)
+
+# Function to retrieve conversation history for a user
+def get_conversation_history(user_id):
+    return "\n".join(user_memory.get(user_id, []))
 
 # Function to upload an image to Facebook's Graph API
 def upload_image_to_graph(image_data):
@@ -42,27 +53,6 @@ def upload_image_to_graph(image_data):
         logger.error("Error in upload_image_to_graph: %s", str(e))
         return {"success": False, "error": str(e)}
 
-
-# Function to upload audio to Facebook's Graph API
-def upload_audio_to_graph(audio_data):
-    url = f"https://graph.facebook.com/v21.0/me/message_attachments"
-    params = {"access_token": PAGE_ACCESS_TOKEN}
-    files = {"filedata": ("audio.mp3", audio_data, "audio/mpeg")}
-    data = {"message": '{"attachment":{"type":"audio", "payload":{}}}'}
-
-    try:
-        response = requests.post(url, params=params, files=files, data=data)
-        if response.status_code == 200:
-            result = response.json()
-            return {"success": True, "attachment_id": result.get("attachment_id")}
-        else:
-            logger.error("Failed to upload audio: %s", response.json())
-            return {"success": False, "error": response.json()}
-    except Exception as e:
-        logger.error("Error in upload_audio_to_graph: %s", str(e))
-        return {"success": False, "error": str(e)}
-
-
 # Verification endpoint for Facebook webhook
 @app.route('/webhook', methods=['GET'])
 def verify():
@@ -72,7 +62,6 @@ def verify():
         return request.args.get("hub.challenge", "")
     logger.error("Webhook verification failed: invalid verify token.")
     return "Verification failed", 403
-
 
 # Main webhook endpoint to handle messages
 @app.route('/webhook', methods=['POST'])
@@ -87,28 +76,8 @@ def webhook():
                     sender_id = event["sender"]["id"]
                     message_text = event["message"].get("text")
                     message_attachments = event["message"].get("attachments")
-                    message_command = event["message"].get("text")
 
-                    # Check if message has text with a command prefix
-                    if message_command and message_command.startswith(PREFIX):
-                        sliced_message = message_command[len(PREFIX):]
-                        command_name = sliced_message.split()[0]
-                        message = sliced_message[len(command_name):].strip()
-                        response = messageHandler.handle_text_command(command_name, message)
-
-                        if isinstance(response, dict) and response.get("success"):
-                            if isinstance(response["data"], BytesIO):  # Handle image
-                                upload_response = upload_image_to_graph(response["data"])
-                                if upload_response.get("success"):
-                                    send_message(sender_id, {"type": "image", "content": upload_response["attachment_id"]})
-                                else:
-                                    send_message(sender_id, "🚨 Failed to upload the image.")
-                            else:
-                                send_message(sender_id, response["data"])
-                        else:
-                            send_message(sender_id, response)
-
-                    elif message_attachments:
+                    if message_attachments:
                         try:
                             attachment = message_attachments[0]
                             if attachment["type"] == "image":
@@ -129,13 +98,20 @@ def webhook():
                             logger.error("Error handling attachment: %s", str(e))
                             send_message(sender_id, "Error processing attachment.")
                     elif message_text:
-                        response = messageHandler.handle_text_message(message_text)
+                        # Update user memory
+                        update_user_memory(sender_id, message_text)
+
+                        # Get conversation history
+                        conversation_history = get_conversation_history(sender_id)
+                        full_message = f"Conversation so far:\n{conversation_history}\n\nUser: {message_text}"
+                        
+                        # Generate response
+                        response = messageHandler.handle_text_message(full_message)
                         send_message(sender_id, response)
                     else:
                         send_message(sender_id, "Sorry, I didn't understand that message.")
 
     return "EVENT_RECEIVED", 200
-
 
 # Function to send messages (text, image, or audio)
 def send_message(recipient_id, message=None):
@@ -165,23 +141,9 @@ def send_message(recipient_id, message=None):
                     }
                 },
             }
-        elif message_type == "text":
-            data = {
-                "recipient": {"id": recipient_id},
-                "message": {"text": content},
-            }
-        else:
-            logger.error("Unsupported message type: %s", message_type)
-            return f"❌ An Error Occurred..."
     else:
         if not isinstance(message, str):
-            logger.error("Message content is not a string: %s", message)
             message = str(message) if message else "An error occurred while processing your request."
-        try:
-            message = message.encode("utf-8").decode("utf-8")
-        except Exception as e:
-            logger.error("Failed to encode message to UTF-8: %s", str(e))
-            message = "An error occurred while processing your request."
         data = {
             "recipient": {"id": recipient_id},
             "message": {"text": message},
@@ -203,25 +165,6 @@ def send_message(recipient_id, message=None):
         except Exception:
             logger.error("Failed to send message. Status code: %d", response.status_code)
 
-
-# Test page access token validity
-@app.before_request
-def check_page_access_token():
-    test_url = f"https://graph.facebook.com/me?access_token={PAGE_ACCESS_TOKEN}"
-    response = requests.get(test_url)
-    if response.status_code == 200:
-        logger.info("Page access token is valid.")
-    else:
-        logger.error("Invalid page access token: %s", response.json())
-
-
-start_time = time.time()
-
-
-# Expose the start_time so CMD can access it
-def get_bot_uptime():
-    return time.time() - start_time
-
-
+# Start the app
 if __name__ == '__main__':
     app.run(debug=True, host='0.0.0.0', port=3000)
