@@ -106,7 +106,7 @@ def webhook():
                         full_message = f"Conversation so far:\n{conversation_history}\n\nUser: {message_text}"
                         
                         # Generate response
-                        response = messageHandler.handle_text_message(full_message)
+                        response = messageHandler.handle_text_message(full_message,system_instruction)
                         send_message(sender_id, response)
                     else:
                         send_message(sender_id, "Sorry, I didn't understand that message.")
