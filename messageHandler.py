@@ -81,34 +81,31 @@ def initialize_image_model():
     genai.configure(api_key=os.getenv("GEMINI_IMAGE_API_KEY"))
     return genai.GenerativeModel("gemini-1.5-pro")
 
-def complex_response(user_message):
-    """Handles incoming user messages and returns a bot response."""
-    try:
-        # Fetch results from Bing and Google using brain.py
-        response_1, response_2 = query(user_message)
-        combined_responses = system_instruction_template.format(
-            date=time_now,
-            response_1=response_1,
-            response_2=response_2
-        )
-        return combined_responses
-
-    except Exception as e:
-        logger.error(f"Error in complex_response: {str(e)}")
-        return f"An error occurred while processing your request: {str(e)}"
 
 def handle_text_message(user_message):
     """Process a user message and generate a response using the text model."""
     try:
         logger.info("Processing text message: %s", user_message)
+        
+        # Fetch results from Bing and Google using brain.py
+        response_1, response_2 = query(user_message)
+        
+        # Format the system instruction with query results
+        system_instruction = system_instruction_template.format(
+            date=time_now,
+            response_1=response_1,
+            response_2=response_2
+        )
+        
+        # Initialize the text model and generate a response
         chat = initialize_text_model().start_chat(history=[])
-        response = chat.send_message(f"{system_instruction_template}\n\nHuman: {user_message}")
+        response = chat.send_message(f"{system_instruction}\n\nHuman: {user_message}")
+        
         return response.text
 
     except Exception as e:
         logger.error(f"Error processing text message: {str(e)}")
         return "😔 Sorry, I encountered an error processing your message."
-
 def handle_attachment(attachment_data: bytes, attachment_type: str = "image") -> str:
     """Handle image attachment and analyze its content."""
     if attachment_type != "image":
