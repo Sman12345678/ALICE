@@ -1,8 +1,6 @@
 import requests
 from bs4 import BeautifulSoup
 import os
-import googleapiclient.discovery
-
 
 def scrape_bing(user_message):
     """Scrapes Bing search results using the specified <div> class."""
@@ -32,15 +30,21 @@ def scrape_bing(user_message):
         return f"Error scraping Bing: {str(e)}"
 
 def google_search(user_message):
-    """Uses Google Custom Search API to fetch results for the user message."""
+    """Fetches results from Google Search API using a direct URL request."""
     try:
-        # Set up the Google Custom Search API
         api_key = os.getenv("GOOGLE_API_KEY")
         cse_id = os.getenv("GOOGLE_CSE_ID")
         
-        service = googleapiclient.discovery.build("customsearch", "v1", developerKey=api_key)
-        result = service.cse().list(q=user_message, cx=cse_id, num=5).execute()
-
+        # Construct the API URL
+        search_url = (
+            f"https://www.googleapis.com/customsearch/v1"
+            f"?key={api_key}&cx={cse_id}&q={user_message}&num=5"
+        )
+        
+        response = requests.get(search_url)
+        response.raise_for_status()
+        result = response.json()
+        
         # Extract search results
         results = []
         for item in result.get('items', []):
@@ -48,7 +52,7 @@ def google_search(user_message):
             link = item['link']
             snippet = item.get('snippet', 'No description available.')
             results.append(f"Title: {title}\nLink: {link}\nSnippet: {snippet}\n")
-
+        
         return "\n".join(results) if results else "No results found on Google."
     except Exception as e:
         return f"Error with Google Search API: {str(e)}"
