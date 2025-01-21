@@ -70,7 +70,7 @@ def webhook():
                         response = messageHandler.handle_text_message(full_message)
                         send_message(sender_id, response)
                     else:
-                        send_message(sender_id, "Sorry, I didn't understand that message.")
+                        send_message(sender_id, "👍")
 
     return "EVENT_RECEIVED", 200
 
