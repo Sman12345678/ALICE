@@ -34,25 +34,6 @@ def update_user_memory(user_id, message):
 def get_conversation_history(user_id):
     return "\n".join(user_memory.get(user_id, []))
 
-# Function to upload an image to Facebook's Graph API
-def upload_image_to_graph(image_data):
-    url = f"https://graph.facebook.com/v21.0/me/message_attachments"
-    params = {"access_token": PAGE_ACCESS_TOKEN}
-    files = {"filedata": ("image.jpg", image_data, "image/jpeg")}
-    data = {"message": '{"attachment":{"type":"image", "payload":{}}}'}
-
-    try:
-        response = requests.post(url, params=params, files=files, data=data)
-        if response.status_code == 200:
-            result = response.json()
-            return {"success": True, "attachment_id": result.get("attachment_id")}
-        else:
-            logger.error("Failed to upload image: %s", response.json())
-            return {"success": False, "error": response.json()}
-    except Exception as e:
-        logger.error("Error in upload_image_to_graph: %s", str(e))
-        return {"success": False, "error": str(e)}
-
 # Verification endpoint for Facebook webhook
 @app.route('/webhook', methods=['GET'])
 def verify():
@@ -77,27 +58,7 @@ def webhook():
                     message_text = event["message"].get("text")
                     message_attachments = event["message"].get("attachments")
 
-                    if message_attachments:
-                        try:
-                            attachment = message_attachments[0]
-                            if attachment["type"] == "image":
-                                image_url = attachment["payload"]["url"]
-                                image_response = requests.get(image_url)
-                                image_response.raise_for_status()
-                                image_data = image_response.content
-                                response = messageHandler.handle_attachment(image_data, attachment_type="image")
-                                send_message(sender_id, response)
-                            elif attachment["type"] == "audio":
-                                audio_url = attachment["payload"]["url"]
-                                audio_response = requests.get(audio_url)
-                                audio_response.raise_for_status()
-                                audio_data = audio_response.content
-                                response = messageHandler.handle_attachment(audio_data, attachment_type="audio")
-                                send_message(sender_id, response)
-                        except Exception as e:
-                            logger.error("Error handling attachment: %s", str(e))
-                            send_message(sender_id, "Error processing attachment.")
-                    elif message_text:
+                    if message_text:
                         # Update user memory
                         update_user_memory(sender_id, message_text)
 
@@ -113,41 +74,16 @@ def webhook():
 
     return "EVENT_RECEIVED", 200
 
-# Function to send messages (text, image, or audio)
+# Function to send messages (text only)
 def send_message(recipient_id, message=None):
     params = {"access_token": PAGE_ACCESS_TOKEN}
 
-    if isinstance(message, dict):
-        message_type = message.get("type")
-        content = message.get("content")
-
-        if message_type == "image":
-            data = {
-                "recipient": {"id": recipient_id},
-                "message": {
-                    "attachment": {
-                        "type": "image",
-                        "payload": {"attachment_id": content}
-                    }
-                },
-            }
-        elif message_type == "audio":
-            data = {
-                "recipient": {"id": recipient_id},
-                "message": {
-                    "attachment": {
-                        "type": "audio",
-                        "payload": {"attachment_id": content}
-                    }
-                },
-            }
-    else:
-        if not isinstance(message, str):
-            message = str(message) if message else "An error occurred while processing your request."
-        data = {
-            "recipient": {"id": recipient_id},
-            "message": {"text": message},
-        }
+    if not isinstance(message, str):
+        message = str(message) if message else "An error occurred while processing your request."
+    data = {
+        "recipient": {"id": recipient_id},
+        "message": {"text": message},
+    }
 
     headers = {"Content-Type": "application/json"}
     response = requests.post(
