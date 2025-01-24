@@ -1,6 +1,7 @@
 import requests
 from bs4 import BeautifulSoup
 import os
+import urllib3
 
 url="https://bing.com/search?q={message}"
 """
