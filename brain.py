@@ -11,7 +11,7 @@ But with it disabled we can scrap many sites.
 # Disable annoying warnings
 urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
 
-def scrape_website(user_message):
+def scrape_bing(user_message):
     url="https://bing.com/search?q={user_message}"
     try:
         # SSL verification disabled✌️
