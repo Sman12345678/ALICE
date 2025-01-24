@@ -2,32 +2,30 @@ import requests
 from bs4 import BeautifulSoup
 import os
 
-def scrape_bing(user_message):
-    """Scrapes Bing search results using the specified <div> class."""
-    search_url = f"https://bing.com/search?q={user_message}"
-    headers = {"User-Agent": "Mozilla/5.0"}
-    
+url="https://bing.com/search?q={message}"
+"""
+I disabled ssl certificate check, be careful bro
+But with it disabled we can scrap many sites.
+"""
+
+# Disable annoying warnings
+urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
+
+def scrape_website(user_message):
+    url="https://bing.com/search?q={user_message}"
     try:
-        response = requests.get(search_url, headers=headers)
-        response.raise_for_status()
-        soup = BeautifulSoup(response.text, "html.parser")
+        # SSL verification disabled✌️
+        response = requests.get(url, verify=False)  
+        response.raise_for_status()  
         
-        # Extract search results using the specific <div> class
-        results = []
-        for div in soup.find_all('div', class_="rwrl rwrl_sec rwrl_padref rwrl_fontexp rwrl_bchl")[:5]:  # Limit to top 5
-            title_tag = div.find('h2')
-            link_tag = div.find('a')
-            snippet_tag = div.find('p')
-            
-            if title_tag and link_tag:
-                title = title_tag.get_text(strip=True)
-                link = link_tag['href']
-                snippet = snippet_tag.get_text(strip=True) if snippet_tag else "No description available."
-                results.append(f"Title: {title}\nLink: {link}\nSnippet: {snippet}\n")
+        # Parse the content
+        soup = BeautifulSoup(response.content, 'html.parser')
+        results = soup.get_text(separator='\n', strip=True)  # Extract the text
         
-        return "\n".join(results) if results else "No results found on Bing."
-    except Exception as e:
-        return f"Error scraping Bing: {str(e)}"
+        return results 
+    except requests.exceptions.RequestException as e:
+        # W check errors. 
+        return f"An error bro: {e}"
 
 def google_search(user_message):
     """Fetches results from Google Search API using a direct URL request."""
