@@ -55,8 +55,9 @@ def google_search(user_message):
 
 def query(user_message):
     """Fetches and returns search results from Bing and Google."""
-    bing_results = scrape_bing(user_message)
-    google_results = google_search(user_message)
+    response_1= scrape_bing(user_message)
+    response_2= google_search(user_message)
+    return response__1, response_2
     
     # Combine results
     
