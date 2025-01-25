@@ -50,7 +50,7 @@ system_instruction_template = """
 If the question ask is a particular topic then give a heading to it with brackets【 】
 Today’s date: {date}
 
-Here are responses for some questions; You should pick only the relevant parts Ignore if the response here are not useful:
+Here are responses for some questions which you may not know; You should pick only the relevant parts Ignore if the response here are not useful:
 From Bing:
 {response_1}
 
