@@ -19,7 +19,7 @@ def scrape_bing(user_message):
         results = soup.get_text(separator='\n', strip=True)  # Extract the text
         
         
-        return "\n".join(results) if results else "No results found on Bing."
+        return results if results else "No results found on Bing."
     except requests.exceptions.RequestException as e:
         return f"Error fetching Bing results: {e}"
 
