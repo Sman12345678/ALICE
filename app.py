@@ -1,6 +1,6 @@
 import os
 import logging
-from flask import Flask, request, jsonify
+from flask import Flask, request, jsonify,render_template
 from dotenv import load_dotenv
 from flask_cors import CORS
 import requests
