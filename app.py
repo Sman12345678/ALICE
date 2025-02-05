@@ -102,5 +102,20 @@ def send_message(recipient_id, message=None):
             logger.error("Failed to send message. Status code: %d", response.status_code)
 
 # Start the app
+@app.route('/')
+def home():
+    return render_template('index.html')
+
+@app.route('/api', methods=['GET'])
+def api():
+    query = request.args.get('query')  # Get the query parameter from the URL
+    if not query:
+        return jsonify({"error": "No query provided"}), 400  # Return an error if no query is passed
+    
+    # Pass the query to messageHandler and get the response
+    response = messageHandler.handle_text_message(query)
+    
+    return jsonify(response)  # Return the response as JSON
+
 if __name__ == '__main__':
     app.run(debug=True, host='0.0.0.0', port=3000)
