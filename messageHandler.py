@@ -9,10 +9,7 @@ import urllib3
 from brain import query  # Import the query function from brain.py
 
 # Disable SSL warnings
-urllib3.disable_warnings(urllq
-                         
-                         
-                         xceptions.InsecureRequestWarning)
+urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
 
 # Load environment variables
 load_dotenv()
