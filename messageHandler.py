@@ -54,7 +54,7 @@ If the question ask is a particular topic then give a heading to it with bracket
 Today’s date: {date}
 
 
-*Below are response tip for live time information and other information depend solely on it for live time information; You should pick only the relevant parts Ignore if the response here are not useful:
+*Below are Answers for Real-time information and other information depend solely on it for live time information; You should pick only the relevant parts:
 From Bing:
 {response_1}
 
