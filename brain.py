@@ -2,6 +2,7 @@ import requests
 from bs4 import BeautifulSoup
 import os
 import urllib3
+import urllib.parse  # Import urllib module
 
 # Disable SSL warnings
 urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
