@@ -8,7 +8,7 @@ urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
 
 def scrape_bing(user_message):
     """Scrapes Bing search results."""
-    question = '+'.join(user_message.split())
+    question = urllib.parse.quote_plus(user_message)
     url = f"https://bing.com/search?q={question}"
     try:
         # SSL verification disabled (use cautiously)
