@@ -7,7 +7,7 @@ import requests
 import messageHandler  # Import the message handler module
 import time
 from collections import deque
-from Brain import query 
+from brain import query 
 # Load environment variables
 load_dotenv()
 
