@@ -7,7 +7,7 @@ import requests
 import messageHandler  # Import the message handler module
 import time
 from collections import deque
-
+from Brain import query 
 # Load environment variables
 load_dotenv()
 
@@ -115,7 +115,18 @@ def api():
     # Pass the query to messageHandler and get the response
     response = messageHandler.handle_text_message(query)
     
-    return jsonify(response)  # Return the response as JSON
+    return jsonify(response)  
+
+@app.route('/api2', methods=['GET'])
+def api2():
+    user_query = request.args.get('query')  # Get the query parameter from the URL
+    if not user_query:
+        return jsonify({"error": "No query provided"}), 400  # Return an error if no query is passed
+    
+    # Pass the query to brain.py and get the response
+    response_1, response_2 = query(user_query)
+    
+    return jsonify({"bing_response": response_1, "google_response": response_2})  # Return the responses as JSON
 
 if __name__ == '__main__':
-    app.run(debug=True, host='0.0.0.0', port=3000)
+    app.run(debug=True,host='0.0.0.0',port=3000)
