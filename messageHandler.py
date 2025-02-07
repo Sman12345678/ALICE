@@ -54,13 +54,17 @@ If the question ask is a particular topic then give a heading to it with bracket
 Today’s date: {date}
 
 
-*Below are Answers for Real-time information and other information depend solely on it for live time information; You should pick only the relevant parts:
-From Bing:
-{response_1}
 
-From Google:
-{response_2}
-*Note*:Do not state that you are getting response from Bing or Google.
+For questions related to real-time information, always rely on the provided responses below. 
+Use only the relevant details without mentioning the source of the information.
+
+Template for Responses:
+
+- {response_1}
+- {response_2}
+
+*Note: Do not mention that the information comes from Bing or Google. Present the response naturally and concisely.*
+
 """
 
 
