@@ -8,8 +8,8 @@ urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
 
 def scrape_bing(user_message):
     """Scrapes Bing search results."""
-question = '+'.join(user_message.split())
-url = f"https://bing.com/search?q={question}"
+    question = '+'.join(user_message.split())
+    url = f"https://bing.com/search?q={question}"
     try:
         # SSL verification disabled (use cautiously)
         response = requests.get(url, verify=False)
@@ -18,7 +18,6 @@ url = f"https://bing.com/search?q={question}"
         # Parse the content with BeautifulSoup
         soup = BeautifulSoup(response.content, 'html.parser')
         results = soup.get_text(separator='\n', strip=True)  # Extract the text
-        
         
         return results if results else "No results found on Bing."
     except requests.exceptions.RequestException as e:
@@ -56,9 +55,6 @@ def google_search(user_message):
 
 def query(user_message):
     """Fetches and returns search results from Bing and Google."""
-    response_1= scrape_bing(user_message)
-    response_2= google_search(user_message)
+    response_1 = scrape_bing(user_message)
+    response_2 = google_search(user_message)
     return response_1, response_2
-    
-    # Combine results
-    
