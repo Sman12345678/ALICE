@@ -81,13 +81,13 @@ def initialize_text_model():
 
 
 
-def handle_text_message(user_message):
+def handle_text_message(user_message,last_message):
     """Process a user message and generate a response using the text model."""
     try:
         logger.info("Processing text message: %s", user_message)
         
         # Fetch results from Bing and Google using brain.py
-        response_1, response_2 = query(user_message)
+        response_1, response_2 = query(last_message)
         
         # Format the system instruction with query results
         system_instruction = system_instruction_template.format(
