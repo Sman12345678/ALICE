@@ -64,7 +64,7 @@ def webhook():
 
                         # Get conversation history
                         conversation_history = get_conversation_history(sender_id)
-                        full_message = f"Conversation so far:\n Focus Your response on the last message:\n{conversation_history}\n\nUser: {message_text}"
+                        full_message = f"Conversation so far:\n{conversation_history}\n\nUser: {message_text}"
                         
                         # Generate response
                         response = messageHandler.handle_text_message(full_message)
