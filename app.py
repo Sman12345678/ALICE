@@ -113,7 +113,7 @@ def api():
         return jsonify({"error": "No query provided"}), 400  # Return an error if no query is passed
     
     # Pass the query to messageHandler and get the response
-    response = messageHandler.handle_text_message(query)
+    response = messageHandler.handle_text_message(query,last_message=None)
     
     return jsonify(response)  
 
