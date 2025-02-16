@@ -81,10 +81,12 @@ def initialize_text_model():
     )
 
 
-
-def handle_text_message(user_message,last_message):
+def handle_text_message(user_message, last_message):
     """Process a user message and generate a response using the text model."""
     try:
+        if last_message is None:
+            last_message = ""
+        
         logger.info("Processing text message: %s", user_message)
         
         # Fetch results from Bing and Google using brain.py
