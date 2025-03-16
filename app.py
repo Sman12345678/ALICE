@@ -1,13 +1,15 @@
 import os
 import logging
-from flask import Flask, request, jsonify,render_template
+import sqlite3
+from flask import Flask, request, jsonify, render_template
 from dotenv import load_dotenv
 from flask_cors import CORS
 import requests
 import messageHandler  # Import the message handler module
 import time
 from collections import deque
-from brain import query 
+from brain import query
+
 # Load environment variables
 load_dotenv()
 
@@ -21,18 +23,45 @@ logger = logging.getLogger()
 VERIFY_TOKEN = os.getenv("VERIFY_TOKEN")
 PAGE_ACCESS_TOKEN = os.getenv("PAGE_ACCESS_TOKEN")
 
-# Store user message history
-user_memory = {}
+# Connect to SQLite database (or create it if it doesn't exist)
+def get_db_connection():
+    conn = sqlite3.connect('bot_messages.db')
+    conn.row_factory = sqlite3.Row
+    return conn
 
-# Function to store the last three messages per user
-def update_user_memory(user_id, message):
-    if user_id not in user_memory:
-        user_memory[user_id] = deque(maxlen=15)
-    user_memory[user_id].append(message)
+# Create a table to store messages if it doesn't exist
+def create_table():
+    conn = get_db_connection()
+    cursor = conn.cursor()
+    cursor.execute('''
+    CREATE TABLE IF NOT EXISTS messages (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        user_id TEXT NOT NULL,
+        message TEXT NOT NULL,
+        timestamp DATETIME DEFAULT CURRENT_TIMESTAMP
+    )
+    ''')
+    conn.commit()
+    conn.close()
 
-# Function to retrieve conversation history for a user
-def get_conversation_history(user_id):
-    return "\n".join(user_memory.get(user_id, []))
+create_table()
+
+# Function to save a message to the database
+def save_message(user_id, message):
+    conn = get_db_connection()
+    cursor = conn.cursor()
+    cursor.execute('INSERT INTO messages (user_id, message) VALUES (?, ?)', (user_id, message))
+    conn.commit()
+    conn.close()
+
+# Function to retrieve the last N messages from the database
+def get_last_messages(user_id, n):
+    conn = get_db_connection()
+    cursor = conn.cursor()
+    cursor.execute('SELECT message FROM messages WHERE user_id = ? ORDER BY timestamp DESC LIMIT ?', (user_id, n))
+    messages = cursor.fetchall()
+    conn.close()
+    return [message['message'] for message in messages]
 
 # Verification endpoint for Facebook webhook
 @app.route('/webhook', methods=['GET'])
@@ -59,15 +88,15 @@ def webhook():
                     message_attachments = event["message"].get("attachments")
 
                     if message_text:
-                        # Update user memory
-                        update_user_memory(sender_id, message_text)
+                        # Save message to the database
+                        save_message(sender_id, message_text)
 
                         # Get conversation history
-                        conversation_history = get_conversation_history(sender_id)
-                        full_message = f"Conversation so far:\n{conversation_history}\n\nUser: {message_text}"
-                        
+                        conversation_history = get_last_messages(sender_id, 15)
+                        full_message = f"Conversation so far:\n{'\n'.join(conversation_history)}\n\nUser: {message_text}"
+
                         # Generate response
-                        response = messageHandler.handle_text_message(full_message,message_text)
+                        response = messageHandler.handle_text_message(full_message, message_text)
                         send_message(sender_id, response)
                     else:
                         send_message(sender_id, "👍")
@@ -113,7 +142,7 @@ def api():
         return jsonify({"error": "No query provided"}), 400  # Return an error if no query is passed
     
     # Pass the query to messageHandler and get the response
-    response = messageHandler.handle_text_message(query,last_message=None)
+    response = messageHandler.handle_text_message(query, query)
     
     return jsonify(response)  
 
@@ -129,4 +158,4 @@ def api2():
     return jsonify({"bing_response": response_1, "google_response": response_2})  # Return the responses as JSON
 
 if __name__ == '__main__':
-    app.run(debug=True,host='0.0.0.0',port=3000)
+    app.run(debug=True, host='0.0.0.0', port=3000)
