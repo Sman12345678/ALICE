@@ -93,7 +93,7 @@ def webhook():
 
                         # Get conversation history
                         conversation_history = get_last_messages(sender_id, 15)
-                        full_message = f"Conversation so far:\n{'\n'.join(conversation_history)}\n\nUser: {message_text}"
+                        full_message = "Conversation so far:\n{}\n\nUser: {}".format('\n'.join(conversation_history), message_text)
 
                         # Generate response
                         response = messageHandler.handle_text_message(full_message, message_text)
