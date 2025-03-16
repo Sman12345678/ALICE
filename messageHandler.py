@@ -75,8 +75,12 @@ Today’s date: {date}
 
 
 ***IMPORTANT***
-For questions related to real-time information, rely on the provided responses below. 
-Use only the relevant details without mentioning the source of the information.
+Today’s date: {date}
+
+
+
+For questions related to real-time information, always rely on the provided responses below. 
+Use only the relevant details without mentioning the source of the 
 
 Template for Responses:
 
