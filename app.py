@@ -56,7 +56,7 @@ def save_message(user_id, message, is_bot=False):
     conn.commit()
     conn.close()
 
-# Function to retrieve the last N messages from the database
+# Function to retrieve the last N messages from the database (plain, in order)
 def get_last_messages(user_id, n):
     conn = get_db_connection()
     cursor = conn.cursor()
@@ -64,12 +64,12 @@ def get_last_messages(user_id, n):
         SELECT message, is_bot 
         FROM messages 
         WHERE user_id = ? 
-        ORDER BY timestamp DESC 
+        ORDER BY timestamp ASC 
         LIMIT ?
     ''', (user_id, n))
     messages = cursor.fetchall()
     conn.close()
-    return [f"{'Bot' if msg['is_bot'] else 'User'}: {msg['message']}" for msg in messages]
+    return [{"role": "bot" if msg["is_bot"] else "user", "message": msg["message"]} for msg in messages]
 
 # Verification endpoint for Facebook webhook
 @app.route('/webhook', methods=['GET'])
@@ -99,13 +99,13 @@ def webhook():
                         # Save user message to the database
                         save_message(sender_id, message_text, is_bot=False)
 
-                        # Get conversation history
+                        # Get conversation history (plain, as list of dicts)
                         conversation_history = get_last_messages(sender_id, 15)
-                        full_message = "Conversation so far:\n{}\n\nUser: {}".format(
-                            '\n'.join(reversed(conversation_history)), message_text)
+                        # Build history as list of (role, message) tuples for handler
+                        history = [(msg["role"], msg["message"]) for msg in conversation_history]
 
-                        # Generate response
-                        response = messageHandler.handle_text_message(full_message, message_text)
+                        # Generate response (pass history and latest user message)
+                        response = messageHandler.handle_text_message(history, message_text)
                         
                         # Save bot's response to the database
                         save_message(sender_id, response, is_bot=True)
@@ -132,7 +132,7 @@ def send_message(recipient_id, message=None):
 
     headers = {"Content-Type": "application/json"}
     response = requests.post(
-        f"https://graph.facebook.com/v21.0/me/messages",
+        f"https://graph.facebook.com/v23.0/me/messages",
         params=params,
         headers=headers,
         json=data
@@ -153,13 +153,22 @@ def home():
 
 @app.route('/api', methods=['GET'])
 def api():
-    query = request.args.get('query')  # Get the query parameter from the URL
-    if not query:
-        return jsonify({"error": "No query provided"}), 400
-    
-    # Pass the query to messageHandler and get the response
-    response = messageHandler.handle_text_message(query, query)
-    return jsonify(response)
+    user_id = request.args.get('user_id')  # Require a user_id for history
+    query_text = request.args.get('query')
+    if not query_text or not user_id:
+        return jsonify({"error": "No query or user_id provided"}), 400
+
+    # Save user message
+    save_message(user_id, query_text, is_bot=False)
+    # Get conversation history (plain, as list of dicts)
+    conversation_history = get_last_messages(user_id, 15)
+    # Build history as list of (role, message) tuples for handler
+    history = [(msg["role"], msg["message"]) for msg in conversation_history]
+    # Generate response
+    response = messageHandler.handle_text_message(history, query_text)
+    # Save bot's response
+    save_message(user_id, response, is_bot=True)
+    return jsonify({"response": response})
 
 @app.route('/api2', methods=['GET'])
 def api2():
