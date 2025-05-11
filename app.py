@@ -132,7 +132,7 @@ def send_message(recipient_id, message=None):
 
     headers = {"Content-Type": "application/json"}
     response = requests.post(
-        f"https://graph.facebook.com/v23.0/me/messages",
+        f"https://graph.facebook.com/v22.0/me/messages",
         params=params,
         headers=headers,
         json=data
