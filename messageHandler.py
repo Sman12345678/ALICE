@@ -54,7 +54,7 @@ Template for Responses:
 
 def initialize_text_model():
     """Initialize the Gemini text model."""
-    genai.configure(api_key=os.getenv("GEMINI_TEXT_API_KEY"))
+    genai.configure(api_key=os.getenv("GEMINI_API_KEY"))
     return genai.GenerativeModel(
         model_name="gemini-1.5-flash",
         generation_config={
